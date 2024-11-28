@@ -1,0 +1,59 @@
+services:
+  database:
+    image: postgres:12-alpine
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+  cache:
+    image: redis:7.4.1-alpine
+    restart: always
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+  songs_api:
+    depends_on:
+      database:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.songs
+    environment:
+      SONGS_PORT: ${SONGS_PORT}
+      SONG_INFO_SERVICE_SCHEME: ${SONG_INFO_SERVICE_SCHEME}
+      SONG_INFO_SERVICE_HOST: ${SONG_INFO_SERVICE_HOST}
+      SONG_INFO_SERVICE_PORT: ${SONG_INFO_SERVICE_PORT}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    ports:
+      - "${SONGS_PORT}:8080"
+
+  song_info_service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.info
+    environment:
+      SONG_INFO_SERVICE_HOST: ${SONG_INFO_SERVICE_HOST}

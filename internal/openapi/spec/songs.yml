@@ -1,0 +1,364 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Songs API
+paths:
+  /songs:
+    post:
+      operationId: CreateSong
+      tags:
+        - Songs
+      summary: Create a song
+      description: Creates a song with given parameters.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PostSongRequestBody"
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Song"
+        '400':
+          description: Invalid parameters or malformed request body
+        '409':
+          description: Song with the group and song provided already exists
+        '500':
+          description: Internal server error
+
+    get:
+      operationId: GetSongs
+      tags:
+        - Songs
+      summary: Search songs by a specific parameters
+      description: Returns a list of songs.
+      parameters:
+        - name: group
+          in: query
+          description: Song group search term
+          schema:
+            type: string
+          example: alpha
+        - name: song
+          in: query
+          description: Song name search term
+          schema:
+            type: string
+          example: forever
+        - name: text
+          in: query
+          description: Song lyrics search term
+          example: i want to be
+          schema:
+            type: string
+        - name: link
+          in: query
+          description: Song link search term
+          schema:
+            type: string
+          example: youtube
+        - name: before
+          in: query
+          description: Search songs released before a specific date (DD.MM.YYYY)
+          schema:
+            type: string
+          example: 01.01.2022
+          x-oapi-codegen-extra-tags:
+            validate: omitempty,dmyDate
+        - name: after
+          in: query
+          description: Search songs released after a specific date (DD.MM.YYYY)
+          schema:
+            type: string
+          example: 01.01.1965
+          x-oapi-codegen-extra-tags:
+            validate: omitempty,dmyDate
+        - name: limit
+          in: query
+          description: Limit for pagination
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+            maximum: 20
+        - name: offset
+          in: query
+          description: Offset for pagination
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  songs:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Song"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        '400':
+          description: Invalid parameters
+        '500':
+          description: Internal server error
+
+  /songs/{songID}:
+    get:
+      operationId: GetSong
+      tags:
+        - Songs
+      summary: Get a song by song ID
+      parameters:
+        - name: songID
+          required: true
+          in: path
+          description: Song ID
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Song"
+        '404':
+          description: Song not found
+        '500':
+          description: Internal server error
+
+    delete:
+      operationId: DeleteSong
+      summary: Delete a song by song ID
+      tags:
+        - Songs
+      parameters:
+        - name: songID
+          required: true
+          in: path
+          description: Song ID
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '204':
+          description: Success
+        '404':
+          description: Song not found
+        '500':
+          description: Internal server error
+
+    patch:
+      operationId: UpdateSong
+      tags:
+        - Songs
+      summary: Update a song
+      description: Updates a song with given parameters.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSongRequestBody"
+      parameters:
+        - name: songID
+          required: true
+          in: path
+          description: Song ID
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Song"
+        '400':
+          description: Invalid parameters or malformed request body
+        '404':
+          description: Song not found
+        '500':
+          description: Internal server error
+
+  /songs/{songID}/text:
+    get:
+      operationId: GetSongText
+      summary: Get song text (couplets) by song ID
+      tags:
+        - Songs
+      parameters:
+        - name: songID
+          required: true
+          in: path
+          description: Song ID
+          schema:
+            type: integer
+          example: 1
+        - name: limit
+          in: query
+          description: Limit for pagination
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+            maximum: 200
+        - name: offset
+          in: query
+          description: Offset for pagination
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+            maximum: 200
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [couplets, pagination]
+                properties:
+                  couplets:
+                    type: array
+                    items:
+                      type: string
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        '400':
+          description: Invalid parameters
+        '404':
+          description: Song not found
+        '500':
+          description: Internal server error
+                  
+components:
+  schemas:
+    Song:
+      type: object
+      required: [id, group, song, releaseDate, text, link]
+      properties:
+        id:
+          type: integer
+          nullable: false
+          example: 1
+        group:
+          type: string
+          nullable: false
+          example: Alphaville
+        song:
+          type: string
+          nullable: false
+          example: Forever Young
+        releaseDate:
+          type: string
+          nullable: false
+          example: 26.09.1969
+        text:
+          type: string
+          nullable: false
+          example: "Let's dance in style, let's dance for a while\nHeaven can wait we're only watching the skies\nHoping for the best, but expecting the worst\nAre you gonna drop the bomb or not?\nLet us die young or let us live forever\nWe don't have the power, but we never say never\nSitting in a sandpit, life is a short trip\nThe music's for the sad man\nCan you imagine when this race is won?\nTurn our golden the faces into the sun\nPraising our leaders, we're getting in tune\nThe music's played by the, the madman\nForever young\nI want to be forever young\nDo you really want to live forever?\nForever, and ever\nForever young\nI want to be forever young\nDo you really want to live forever?\nForever young\nSome are like water, some are like the heat\nSome are a melody and some are the beat\nSooner or later they all will be gone\nWhy don't they stay young?\nIt's so hard to get old without a cause\nI don't want to perish like a fading horse\nYouth's like diamonds in the sun\nAnd diamonds are forever\nSo many adventures given up today\nSo many songs we forgot to play\nSo many dreams swinging out of the blue\nOh let it come true\nForever young\nI want to be forever young\nDo you really want to live forever\nForever, and ever?\nForever young\nI want to be forever young\nDo you really want to live forever\nForever, and ever?\nForever young\nI want to be forever young\nDo you really want to live forever\nForever young"
+        link:
+          type: string
+          nullable: false
+
+    PostSongRequestBody:
+      type: object
+      required: [group, song]
+      properties:
+        group:
+          type: string
+          description: Song artist(-s)
+          example: Alphaville
+          x-oapi-codegen-extra-tags:
+            validate: required,min=1,max=32
+        song:
+          type: string
+          description: Song title
+          example: Forever Young
+          x-oapi-codegen-extra-tags:
+            validate: required,min=1,max=32
+
+    UpdateSongRequestBody:
+      type: object
+      properties:
+        group:
+          type: string
+          description: Song artist(-s)
+          example: Alphaville
+          x-oapi-codegen-extra-tags:
+            validate: omitempty,min=1,max=32
+        song:
+          type: string
+          description: Song title
+          example: Forever Young
+          x-oapi-codegen-extra-tags:
+            validate: omitempty,min=1,max=32
+        releaseDate:
+          type: string
+          description: Release date (DD.MM.YYYY)
+          example: 26.09.1969
+          x-oapi-codegen-extra-tags:
+            validate: omitempty,dmyDate
+        text:
+          type: string
+          description: Lyrics
+          example: "Let's dance in style, let's dance for a while\nHeaven can wait we're only watching the skies\nHoping for the best, but expecting the worst\nAre you gonna drop the bomb or not?\nLet us die young or let us live forever\nWe don't have the power, but we never say never\nSitting in a sandpit, life is a short trip\nThe music's for the sad man\nCan you imagine when this race is won?\nTurn our golden the faces into the sun\nPraising our leaders, we're getting in tune\nThe music's played by the, the madman\nForever young\nI want to be forever young\nDo you really want to live forever?\nForever, and ever\nForever young\nI want to be forever young\nDo you really want to live forever?\nForever young\nSome are like water, some are like the heat\nSome are a melody and some are the beat\nSooner or later they all will be gone\nWhy don't they stay young?\nIt's so hard to get old without a cause\nI don't want to perish like a fading horse\nYouth's like diamonds in the sun\nAnd diamonds are forever\nSo many adventures given up today\nSo many songs we forgot to play\nSo many dreams swinging out of the blue\nOh let it come true\nForever young\nI want to be forever young\nDo you really want to live forever\nForever, and ever?\nForever young\nI want to be forever young\nDo you really want to live forever\nForever, and ever?\nForever young\nI want to be forever young\nDo you really want to live forever\nForever young"
+          x-oapi-codegen-extra-tags:
+            validate: omitempty,max=2048
+        link:
+          type: string
+          description: Song link
+          example: https://www.youtube.com/watch?v=KQetemT1sWc
+          x-oapi-codegen-extra-tags:
+            validate: omitempty,url
+
+    PostSongResponseBody:
+      type: object
+      properties:
+        song:
+          $ref: "#/components/schemas/Song"
+
+    GetSongTextResponseBody:
+      type: object
+      required: [couplets, limit, offset, total]
+      properties:
+        couplets:
+          type: array
+          items:
+            type: string
+        limit:
+          type: integer
+          example: 10
+        offset:
+          type: integer
+          example: 0
+        total:
+          type: integer
+          example: 20
+
+    Pagination:
+      type: object
+      required: [limit, offset, totalCount]
+      properties:
+        limit:
+          type: integer
+          example: 10
+        offset:
+          type: integer
+          example: 0
+        totalCount:
+          type: integer
+          example: 20
